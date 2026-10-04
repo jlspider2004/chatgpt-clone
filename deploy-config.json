@@ -1,0 +1,6 @@
+{
+  "repo_url": "https://github.com/REPLACE_WITH_USERNAME/chatgpt-clone",
+  "service_name": "chatgpt-clone",
+  "branch": "main",
+  "port": 8000
+}
