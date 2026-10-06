@@ -1,12 +1,13 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { DEFAULT_MODEL } from '../config/kuailv'
 
-const STORAGE_KEY = 'chatgpt-clone-sessions'
+const STORAGE_KEY = 'kuailv-logistics-sessions'
 
-function createSession(model = 'deepseek-v4-flash') {
+function createSession(model = DEFAULT_MODEL) {
   const now = Date.now()
   return {
     id: crypto.randomUUID(),
-    title: 'New chat',
+    title: '新对话',
     model,
     messages: [],
     createdAt: now,
@@ -28,16 +29,30 @@ function saveSessions(sessions, activeSessionId) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ sessions, activeSessionId }))
 }
 
+function applyDefaultModelToEmptySessions(sessions, defaultModel) {
+  const targetModel = defaultModel || DEFAULT_MODEL
+  return sessions.map((session) =>
+    session.messages?.length === 0 && session.model !== targetModel
+      ? { ...session, model: targetModel }
+      : session,
+  )
+}
+
 export function useSessions(defaultModel) {
   const [sessions, setSessions] = useState([])
   const [activeSessionId, setActiveSessionId] = useState(null)
   const [ready, setReady] = useState(false)
+  const initialized = useRef(false)
 
   useEffect(() => {
+    if (initialized.current) return
+    initialized.current = true
+
     const stored = loadSessions()
     if (stored?.sessions?.length) {
-      setSessions(stored.sessions)
-      setActiveSessionId(stored.activeSessionId || stored.sessions[0].id)
+      const normalized = applyDefaultModelToEmptySessions(stored.sessions, defaultModel)
+      setSessions(normalized)
+      setActiveSessionId(stored.activeSessionId || normalized[0].id)
     } else {
       const initial = createSession(defaultModel)
       setSessions([initial])
@@ -45,6 +60,15 @@ export function useSessions(defaultModel) {
     }
     setReady(true)
   }, [defaultModel])
+
+  useEffect(() => {
+    if (!ready) return
+    setSessions((prev) => {
+      const next = applyDefaultModelToEmptySessions(prev, defaultModel)
+      const changed = next.some((session, index) => session.model !== prev[index]?.model)
+      return changed ? next : prev
+    })
+  }, [defaultModel, ready])
 
   useEffect(() => {
     if (!ready || !activeSessionId) return

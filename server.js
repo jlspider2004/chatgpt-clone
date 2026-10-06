@@ -24,6 +24,12 @@ app.use(
           proxyReq.setHeader('Authorization', `Bearer ${token}`)
         }
       },
+      proxyRes: (proxyRes) => {
+        if (proxyRes.headers['content-type']?.includes('text/event-stream')) {
+          proxyRes.headers['cache-control'] = 'no-cache, no-transform'
+          proxyRes.headers['x-accel-buffering'] = 'no'
+        }
+      },
     },
   }),
 )
@@ -33,6 +39,6 @@ app.use((_req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'))
 })
 
-app.listen(port, () => {
-  console.log(`Server running on http://localhost:${port}`)
+app.listen(port, '0.0.0.0', () => {
+  console.log(`Server running on http://0.0.0.0:${port}`)
 })
