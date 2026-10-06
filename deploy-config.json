@@ -1,6 +1,6 @@
 {
   "repo_url": "https://github.com/jlspider2004/chatgpt-clone",
   "service_name": "kuailv-logistics",
-  "branch": "main",
+  "branch": "deploy/kuailv-logistics",
   "port": 8000
 }
