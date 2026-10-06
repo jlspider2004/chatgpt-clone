@@ -15,9 +15,10 @@ const LOGISTICS_TERMS = [
   '2.5分',
 ].join(',')
 
-export async function transcribeAudio(blob) {
+export async function transcribeAudio(blob, extension = 'webm') {
+  const safeExt = extension.replace(/[^a-z0-9]/gi, '') || 'webm'
   const formData = new FormData()
-  formData.append('audio_file', blob, 'recording.webm')
+  formData.append('audio_file', blob, `recording.${safeExt}`)
   formData.append('language', 'zh-CN')
   formData.append('terms', LOGISTICS_TERMS)
 
