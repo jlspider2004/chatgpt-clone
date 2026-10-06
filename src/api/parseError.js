@@ -1,4 +1,4 @@
-const GATEWAY_STATUSES = new Set([502, 503, 504])
+const GATEWAY_STATUSES = new Set([404, 502, 503, 504])
 
 function formatJsonDetail(data) {
   const detail = data.detail ?? data.error?.message ?? data.message
@@ -18,6 +18,9 @@ function parseHtmlTitle(raw) {
 }
 
 function gatewayMessage(status) {
+  if (status === 404) {
+    return '服务正在部署或暂时下线，请等 1–2 分钟后刷新页面重试。'
+  }
   if (status === 504) {
     return '请求超时，模型可能还在处理。可换用「DeepSeek V4.1 Flash」后重试，或稍后再试。'
   }
