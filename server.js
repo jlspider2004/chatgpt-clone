@@ -18,6 +18,8 @@ app.use(
     target: 'https://space.ai-builders.com/backend/v1',
     changeOrigin: true,
     pathRewrite: { '^/api': '' },
+    proxyTimeout: 120000,
+    timeout: 120000,
     on: {
       proxyReq: (proxyReq) => {
         if (token) {
@@ -28,6 +30,14 @@ app.use(
         if (proxyRes.headers['content-type']?.includes('text/event-stream')) {
           proxyRes.headers['cache-control'] = 'no-cache, no-transform'
           proxyRes.headers['x-accel-buffering'] = 'no'
+        }
+      },
+      error: (err, _req, res) => {
+        console.error('API proxy error:', err.message)
+        if (!res.headersSent) {
+          res.status(502).json({
+            error: { message: '后端连接失败，请检查网络后重试。' },
+          })
         }
       },
     },

@@ -1,5 +1,6 @@
-const LOGISTICS_TERMS = [
-  '快驴',
+import { parseApiError } from './parseError'
+
+const LOGISTICS_TERMS = [  '快驴',
   '物流',
   '缺货',
   'FDC',
@@ -28,8 +29,7 @@ export async function transcribeAudio(blob, extension = 'webm') {
   })
 
   if (!response.ok) {
-    const errorText = await response.text()
-    throw new Error(errorText || `转写失败 (${response.status})`)
+    throw new Error(await parseApiError(response))
   }
 
   const data = await response.json()

@@ -1,4 +1,5 @@
 import { DEFAULT_MODEL, FALLBACK_MODELS, SYSTEM_PROMPT, TITLE_MODEL } from '../config/kuailv'
+import { parseApiError } from './parseError'
 import { parseOrchestratorTrace, parseToolCallDelta } from './parseTrace'
 
 const NON_STREAMING_MODELS = new Set(['supermind-agent-v1'])
@@ -153,7 +154,7 @@ export async function* streamChat(messages, model) {
   let response = await requestCompletion(messages, model, useStream)
 
   if (!response.ok) {
-    const errorText = await response.text()
+    const errorText = await parseApiError(response)
     if (useStream && isStreamingUnsupportedError(errorText)) {
       useStream = false
       yield {
@@ -162,11 +163,10 @@ export async function* streamChat(messages, model) {
       }
       response = await requestCompletion(messages, model, false)
       if (!response.ok) {
-        const retryError = await response.text()
-        throw new Error(retryError || `Request failed (${response.status})`)
+        throw new Error(await parseApiError(response))
       }
     } else {
-      throw new Error(errorText || `Request failed (${response.status})`)
+      throw new Error(errorText)
     }
   }
 

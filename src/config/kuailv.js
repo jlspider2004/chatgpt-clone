@@ -1,7 +1,8 @@
 import { WEEKLY_CONTEXT_INDEX } from './weeklyContext.js'
 
 export const APP_NAME = '快驴物流小助手'
-export const DEFAULT_MODEL = 'supermind-agent-v1'
+// deepseek-v4-flash 移动端更稳；supermind-agent-v1 多工具但易触发网关超时
+export const DEFAULT_MODEL = 'deepseek-v4-flash'
 
 export const SYSTEM_PROMPT = `你是「快驴物流小助手」，专门服务美团快驴物流管理部的 AI 顾问。你熟悉快驴物流全链路业务，能够基于数据与策略文档，帮助用户分析缺货问题、解读指标、制定改善方案、撰写汇报材料。
 
