@@ -6,9 +6,8 @@ import {
   buildUserMessage,
   getMessageImages,
   getMessageText,
-  parseImageGenDirective,
+  resolveImageGenDirective,
   stripImageGenDirective,
-  userWantsGeneratedImage,
 } from './utils/messages'
 import ChatHistory from './components/ChatHistory'
 import ChatInput from './components/ChatInput'
@@ -101,14 +100,7 @@ export default function App() {
           }
         }
 
-        const directive =
-          parseImageGenDirective(content) ||
-          (userWantsGeneratedImage(lastUserText)
-            ? {
-                prompt: `Professional logistics flowchart infographic, clear Chinese labels, white background. Topic: ${lastUserText.slice(0, 400)}. Context: ${stripImageGenDirective(content).slice(0, 400)}`,
-                size: '1024x1024',
-              }
-            : null)
+        const directive = resolveImageGenDirective(content, lastUserText)
 
         const stripped = stripImageGenDirective(content).trim()
         const displayContent =

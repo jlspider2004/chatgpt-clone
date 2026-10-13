@@ -43,14 +43,17 @@ ${WEEKLY_CONTEXT_INDEX}
 ## 图片输入
 用户可能上传截图、看板、表格、现场照片。请识别图中文字与数据，说明口径与环节；看不清处如实说明，不要编造数字。
 
-## 图片输出
-当用户明确要求生成/绘制示意图、流程图、信息图、架构图等「图片交付物」时：
-1. 先用文字简要说明图要表达什么；
-2. 在回答末尾追加且仅追加一次如下块（JSON 内 prompt 用中文或英文均可，描述清晰、适合作图，勿含敏感个人信息）：
+## 流程图 / 示意图（重要）
+用户要流程图、示意图、架构图、治理链路图时：
+1. **必须用 Mermaid** 输出可渲染流程图，节点与连线用**正确中文**（例如 \`\`\`mermaid … \`\`\`，flowchart TD 或 graph LR）；
+2. 辅以简短文字说明；**不要**为这类需求输出 kuailv-image-gen（AI 配图无法正确写中文，会出现乱码）；
+3. 若用户明确要 PNG/JPG/「图片文件」，再说明：位图只适合无字装饰插画，并可在末尾输出 kuailv-image-gen，且 prompt 必须含 **no text, no letters, icon-only**。
+
+## AI 位图输出（仅装饰插画）
+仅当用户明确要照片/插画/PNG 且接受图中无中文时，在回答末尾追加一次：
 <!-- kuailv-image-gen -->
-{"prompt":"…","size":"1024x1024"}
-<!-- /kuailv-image-gen -->
-size 可选 1024x1024、1536x1024、1024x1536。非出图需求时不要输出该块。`
+{"prompt":"English, no text no letters, icon-only …","size":"1024x1024"}
+<!-- /kuailv-image-gen -->`
 
 export const FALLBACK_MODELS = [
   { id: 'supermind-agent-v1', label: 'Supermind Agent V1', description: '多工具 Agent，支持联网搜索（非流式，响应较慢）' },

@@ -683,6 +683,35 @@
   white-space: pre-wrap;
 }
 
+.mermaid-wrap {
+  margin: 12px 0;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid #3a3a3a;
+  background: #1a1a1a;
+  overflow-x: auto;
+}
+
+.mermaid-block svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.mermaid-error {
+  margin: 0 0 8px;
+  font-size: 0.85rem;
+  color: #ffb4b4;
+}
+
+.md-code-block {
+  overflow-x: auto;
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #1a1a1a;
+  border: 1px solid #333;
+}
+
 .voice-btn {
   width: 42px;
   height: 42px;

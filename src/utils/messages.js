@@ -131,7 +131,37 @@ export function stripImageGenDirective(content) {
   return content.slice(0, start).trim()
 }
 
+/** 流程类需求：应用 Mermaid 渲染中文，不要用 AI 配图（中文会乱码） */
+export function userWantsFlowchart(text) {
+  if (!text) return false
+  return /流程图|示意图|架构图|泳道|思维导图|链路图|治理流程/i.test(text)
+}
+
+export function userWantsRasterImageFile(text) {
+  if (!text) return false
+  return /png|jpg|jpeg|webp|要一张图|图片文件|导出图|照片风格|插画/i.test(text)
+}
+
+/** 是否应调用 /images/generations（非流程图，或用户明确要位图） */
 export function userWantsGeneratedImage(text) {
   if (!text) return false
-  return /生成图|画一[张幅]|示意图|流程图|信息图|架构图|配图|出图|做成图/i.test(text)
+  if (userWantsFlowchart(text) && !userWantsRasterImageFile(text)) return false
+  return /生成图|画一[张幅]|信息图|配图|出图|做成图/i.test(text)
+}
+
+export function resolveImageGenDirective(content, lastUserText) {
+  const parsed = parseImageGenDirective(content)
+  if (parsed && userWantsFlowchart(lastUserText) && !userWantsRasterImageFile(lastUserText)) {
+    return null
+  }
+  if (parsed) return parsed
+
+  if (!userWantsGeneratedImage(lastUserText)) return null
+
+  const summary = stripImageGenDirective(content).slice(0, 400)
+  return {
+    prompt: `Abstract icon-only logistics illustration, NO text NO letters NO numbers NO Chinese, flat vector style, white background. Theme hint: ${lastUserText.slice(0, 200)}.`,
+    size: '1024x1024',
+    note: summary,
+  }
 }

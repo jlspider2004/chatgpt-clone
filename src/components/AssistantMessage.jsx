@@ -1,6 +1,7 @@
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { stripImageGenDirective } from '../utils/messages'
+import MarkdownCode from './MarkdownCode'
 import MessageImages from './MessageImages'
 
 export default function AssistantMessage({ content, images }) {
@@ -12,6 +13,7 @@ export default function AssistantMessage({ content, images }) {
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
           components={{
+            code: MarkdownCode,
             img: ({ src, alt }) => (
               <figure className="message-image-wrap inline-md-image">
                 <a href={src} target="_blank" rel="noopener noreferrer">
