@@ -101,28 +101,54 @@ export default function App() {
           }
         }
 
-        let generatedImages = []
         const directive =
           parseImageGenDirective(content) ||
           (userWantsGeneratedImage(lastUserText)
             ? {
-                prompt: `Clean professional logistics operations infographic, Chinese labels where helpful. Topic: ${lastUserText.slice(0, 400)}. Summary: ${stripImageGenDirective(content).slice(0, 400)}`,
+                prompt: `Professional logistics flowchart infographic, clear Chinese labels, white background. Topic: ${lastUserText.slice(0, 400)}. Context: ${stripImageGenDirective(content).slice(0, 400)}`,
                 size: '1024x1024',
               }
             : null)
 
-        const displayContent = stripImageGenDirective(content)
+        const stripped = stripImageGenDirective(content).trim()
+        const displayContent =
+          stripped ||
+          (directive?.prompt
+            ? '已理解您的出图需求，流程说明见对话；示意图由图像模型单独生成。'
+            : '')
 
-        if (directive?.prompt) {
-          activities = upsertActivity(activities, {
-            text: '正在生成配图…',
-            status: 'running',
+        const finalActivities = finalizeActivities(activities)
+
+        if (!directive?.prompt) {
+          updateSession(sessionId, {
+            messages: [
+              ...contextMessages,
+              {
+                role: 'assistant',
+                content: displayContent,
+                activities: finalActivities.length ? finalActivities : undefined,
+              },
+            ],
+          })
+        } else {
+          // 先落文字，避免出图卡住时整段对话无内容
+          updateSession(sessionId, {
+            messages: [
+              ...contextMessages,
+              {
+                role: 'assistant',
+                content: displayContent,
+                activities: finalActivities.length ? finalActivities : undefined,
+              },
+            ],
           })
           setStreaming({
-            content: displayContent,
-            activities: [...activities],
+            content: '正在生成配图，通常需要 30–90 秒，请稍候…',
+            activities: [],
             images: [],
           })
+
+          let generatedImages = []
           try {
             const img = await generateImage(directive.prompt, { size: directive.size })
             generatedImages = [
@@ -133,26 +159,21 @@ export default function App() {
               },
             ]
           } catch (imgErr) {
-            setError((prev) =>
-              prev ? prev : imgErr.message || '配图生成失败，文字回答已保留。',
-            )
+            setError(imgErr.message || '配图生成失败，文字回答已保留。')
           }
-          activities = finalizeActivities(
-            upsertActivity(activities, { text: '正在生成配图…', status: 'done' }),
-          )
-        }
 
-        const finalActivities = finalizeActivities(activities)
-        const assistantMessage = {
-          role: 'assistant',
-          content: displayContent,
-          images: generatedImages.length ? generatedImages : undefined,
-          activities: finalActivities.length ? finalActivities : undefined,
+          updateSession(sessionId, {
+            messages: [
+              ...contextMessages,
+              {
+                role: 'assistant',
+                content: displayContent,
+                images: generatedImages.length ? generatedImages : undefined,
+                activities: finalActivities.length ? finalActivities : undefined,
+              },
+            ],
+          })
         }
-
-        updateSession(sessionId, {
-          messages: [...contextMessages, assistantMessage],
-        })
 
         if (refreshTitle && titleSource && displayContent) {
           generateTitle(titleSource, displayContent).then((title) => {
