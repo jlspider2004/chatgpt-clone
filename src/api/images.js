@@ -14,7 +14,7 @@ export async function generateImage(prompt, options = {}) {
       model: options.model || 'gpt-image-1.5',
       n: 1,
       size: options.size || '1024x1024',
-      response_format: 'b64_json',
+      // gpt-image-1.5 不接受 response_format（仅 legacy 模型支持）
     }),
   })
 
