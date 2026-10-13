@@ -1,13 +1,18 @@
 import { useEffect, useRef, useState } from 'react'
+import { getMessageText } from '../utils/messages'
+import MessageImages from './MessageImages'
 
-export default function UserMessage({ content, onSave, disabled }) {
+export default function UserMessage({ message, onSave, disabled }) {
+  const text = typeof message === 'string' ? message : getMessageText(message)
+  const images = typeof message === 'object' && message?.images ? message.images : []
+
   const [editing, setEditing] = useState(false)
-  const [draft, setDraft] = useState(content)
+  const [draft, setDraft] = useState(text)
   const textareaRef = useRef(null)
 
   useEffect(() => {
-    if (!editing) setDraft(content)
-  }, [content, editing])
+    if (!editing) setDraft(text)
+  }, [text, editing])
 
   useEffect(() => {
     if (editing) {
@@ -17,15 +22,15 @@ export default function UserMessage({ content, onSave, disabled }) {
   }, [editing, draft.length])
 
   const handleCancel = () => {
-    setDraft(content)
+    setDraft(text)
     setEditing(false)
   }
 
   const handleSave = () => {
-    const text = draft.trim()
-    if (!text || disabled) return
+    const next = draft.trim()
+    if (!next || disabled) return
     setEditing(false)
-    if (text !== content) onSave(text)
+    if (next !== text) onSave(next)
   }
 
   const handleKeyDown = (event) => {
@@ -70,7 +75,8 @@ export default function UserMessage({ content, onSave, disabled }) {
 
   return (
     <div className="user-message-view">
-      <p>{content}</p>
+      <MessageImages images={images} />
+      {text ? <p>{text}</p> : null}
       {!disabled && (
         <button
           type="button"

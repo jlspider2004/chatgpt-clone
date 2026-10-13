@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
 import { APP_NAME } from '../config/kuailv'
+import { stripImageGenDirective } from '../utils/messages'
 import ActivityPanel from './ActivityPanel'
+import AssistantMessage from './AssistantMessage'
 import UserMessage from './UserMessage'
 
 export default function ChatHistory({ messages, streaming, disabled, onEditMessage }) {
@@ -32,10 +32,10 @@ export default function ChatHistory({ messages, streaming, disabled, onEditMessa
               <ActivityPanel activities={message.activities} />
             )}
             {message.role === 'assistant' ? (
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+              <AssistantMessage content={message.content} images={message.images} />
             ) : (
               <UserMessage
-                content={message.content}
+                message={message}
                 disabled={disabled}
                 onSave={(text) => onEditMessage?.(index, text)}
               />
@@ -50,7 +50,10 @@ export default function ChatHistory({ messages, streaming, disabled, onEditMessa
           <div className="message-content">
             <ActivityPanel activities={streaming.activities} />
             {streaming.content ? (
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{streaming.content}</ReactMarkdown>
+              <AssistantMessage
+                content={stripImageGenDirective(streaming.content)}
+                images={streaming.images}
+              />
             ) : (
               <div className="loading-dots">
                 <span />

@@ -1,6 +1,15 @@
 import { useCallback, useEffect, useState } from 'react'
 import { fetchModels, generateTitle, streamChat } from './api/chat'
+import { generateImage } from './api/images'
 import { APP_NAME, DEFAULT_MODEL } from './config/kuailv'
+import {
+  buildUserMessage,
+  getMessageImages,
+  getMessageText,
+  parseImageGenDirective,
+  stripImageGenDirective,
+  userWantsGeneratedImage,
+} from './utils/messages'
 import ChatHistory from './components/ChatHistory'
 import ChatInput from './components/ChatInput'
 import SessionList from './components/SessionList'
@@ -58,10 +67,15 @@ export default function App() {
   }, [])
 
   const generateReply = useCallback(
-    async (sessionId, contextMessages, model, { refreshTitle = false, titleSource } = {}) => {
+    async (
+      sessionId,
+      contextMessages,
+      model,
+      { refreshTitle = false, titleSource, lastUserText = '' } = {},
+    ) => {
       setLoading(true)
       setError('')
-      setStreaming({ content: '', activities: [] })
+      setStreaming({ content: '', activities: [], images: [] })
 
       let activities = []
       let content = ''
@@ -70,12 +84,16 @@ export default function App() {
         for await (const event of streamChat(contextMessages, model)) {
           if (event.type === 'activity') {
             activities = upsertActivity(activities, event.activity)
-            setStreaming({ content, activities: [...activities] })
+            setStreaming({ content: stripImageGenDirective(content), activities: [...activities], images: [] })
           }
 
           if (event.type === 'delta') {
             content = event.fullContent
-            setStreaming({ content, activities: [...activities] })
+            setStreaming({
+              content: stripImageGenDirective(content),
+              activities: [...activities],
+              images: [],
+            })
           }
 
           if (event.type === 'done') {
@@ -83,10 +101,52 @@ export default function App() {
           }
         }
 
+        let generatedImages = []
+        const directive =
+          parseImageGenDirective(content) ||
+          (userWantsGeneratedImage(lastUserText)
+            ? {
+                prompt: `Clean professional logistics operations infographic, Chinese labels where helpful. Topic: ${lastUserText.slice(0, 400)}. Summary: ${stripImageGenDirective(content).slice(0, 400)}`,
+                size: '1024x1024',
+              }
+            : null)
+
+        const displayContent = stripImageGenDirective(content)
+
+        if (directive?.prompt) {
+          activities = upsertActivity(activities, {
+            text: '正在生成配图…',
+            status: 'running',
+          })
+          setStreaming({
+            content: displayContent,
+            activities: [...activities],
+            images: [],
+          })
+          try {
+            const img = await generateImage(directive.prompt, { size: directive.size })
+            generatedImages = [
+              {
+                src: img.src,
+                alt: 'AI 生成配图',
+                caption: img.revisedPrompt ? `修订提示：${img.revisedPrompt}` : undefined,
+              },
+            ]
+          } catch (imgErr) {
+            setError((prev) =>
+              prev ? prev : imgErr.message || '配图生成失败，文字回答已保留。',
+            )
+          }
+          activities = finalizeActivities(
+            upsertActivity(activities, { text: '正在生成配图…', status: 'done' }),
+          )
+        }
+
         const finalActivities = finalizeActivities(activities)
         const assistantMessage = {
           role: 'assistant',
-          content,
+          content: displayContent,
+          images: generatedImages.length ? generatedImages : undefined,
           activities: finalActivities.length ? finalActivities : undefined,
         }
 
@@ -94,8 +154,8 @@ export default function App() {
           messages: [...contextMessages, assistantMessage],
         })
 
-        if (refreshTitle && titleSource && content) {
-          generateTitle(titleSource, content).then((title) => {
+        if (refreshTitle && titleSource && displayContent) {
+          generateTitle(titleSource, displayContent).then((title) => {
             if (title) updateSession(sessionId, { title })
           })
         }
@@ -114,23 +174,29 @@ export default function App() {
     updateSession(activeSessionId, { model })
   }
 
-  const handleSend = async (text) => {
+  const handleSend = async (payload) => {
     if (!activeSession || loading) return
 
-    const userMessage = { role: 'user', content: text }
+    const text = typeof payload === 'string' ? payload : payload.text || ''
+    const images = typeof payload === 'object' ? payload.images || [] : []
+    if (!text.trim() && !images.length) return
+
+    const userMessage = buildUserMessage(text, images)
     const nextMessages = [...activeSession.messages, userMessage]
     const isFirstExchange = activeSession.messages.length === 0
     const sessionId = activeSession.id
     const model = activeSession.model
+    const titleSeed = text.trim() || '图片提问'
 
     updateSession(sessionId, {
       messages: nextMessages,
-      title: isFirstExchange ? deriveTitle(text) : activeSession.title,
+      title: isFirstExchange ? deriveTitle(titleSeed) : activeSession.title,
     })
 
     await generateReply(sessionId, nextMessages, model, {
       refreshTitle: isFirstExchange,
-      titleSource: text,
+      titleSource: titleSeed,
+      lastUserText: text.trim(),
     })
   }
 
@@ -142,12 +208,13 @@ export default function App() {
 
     const message = activeSession.messages[messageIndex]
     if (!message || message.role !== 'user') return
-    if (text === message.content) return
+    if (text === getMessageText(message)) return
 
     const sessionId = activeSession.id
     const model = activeSession.model
     const truncated = activeSession.messages.slice(0, messageIndex)
-    const updatedMessages = [...truncated, { role: 'user', content: text }]
+    const updatedUser = buildUserMessage(text, message.images || getMessageImages(message))
+    const updatedMessages = [...truncated, updatedUser]
     const isFirstMessage = messageIndex === 0
 
     updateSession(sessionId, {
@@ -158,6 +225,7 @@ export default function App() {
     await generateReply(sessionId, updatedMessages, model, {
       refreshTitle: isFirstMessage,
       titleSource: text,
+      lastUserText: text,
     })
   }
 

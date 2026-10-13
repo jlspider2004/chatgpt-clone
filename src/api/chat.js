@@ -1,4 +1,5 @@
 import { DEFAULT_MODEL, FALLBACK_MODELS, SYSTEM_PROMPT, TITLE_MODEL } from '../config/kuailv'
+import { resolveChatModel, serializeMessagesForApi } from '../utils/messages'
 import { parseApiError } from './parseError'
 import { parseOrchestratorTrace, parseToolCallDelta } from './parseTrace'
 
@@ -46,8 +47,9 @@ export async function fetchModels() {
   }
 }
 
-function buildMessages(messages) {
-  return [{ role: 'system', content: SYSTEM_PROMPT }, ...messages]
+function buildMessages(messages, model) {
+  const apiMessages = serializeMessagesForApi(messages)
+  return [{ role: 'system', content: SYSTEM_PROMPT }, ...apiMessages]
 }
 
 function supportsStreaming(model) {
@@ -59,12 +61,13 @@ function isStreamingUnsupportedError(errorText) {
 }
 
 async function requestCompletion(messages, model, stream) {
+  const effectiveModel = resolveChatModel(messages, model)
   return fetch('/api/chat/completions?debug=true', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model,
-      messages: buildMessages(messages),
+      model: effectiveModel,
+      messages: buildMessages(messages, effectiveModel),
       stream,
     }),
   })
@@ -140,8 +143,18 @@ async function* yieldJsonCompletion(data) {
 }
 
 export async function* streamChat(messages, model) {
+  const effectiveModel = resolveChatModel(messages, model)
   yield { type: 'activity', activity: { text: '正在理解您的问题…', status: 'running' } }
-  yield { type: 'activity', activity: { text: `正在调用 ${model} 模型…`, status: 'running' } }
+  if (effectiveModel !== model) {
+    yield {
+      type: 'activity',
+      activity: {
+        text: `检测到图片，已切换为视觉模型 ${effectiveModel}…`,
+        status: 'running',
+      },
+    }
+  }
+  yield { type: 'activity', activity: { text: `正在调用 ${effectiveModel} 模型…`, status: 'running' } }
 
   if (!supportsStreaming(model)) {
     yield {
