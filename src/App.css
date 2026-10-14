@@ -704,6 +704,23 @@
   color: #ffb4b4;
 }
 
+.mermaid-pending {
+  margin: 0 0 8px;
+  font-size: 0.85rem;
+  color: #9b9b9b;
+}
+
+.mermaid-pending-block {
+  position: relative;
+}
+
+.mermaid-pending-hint {
+  display: block;
+  margin-top: 8px;
+  font-size: 0.8rem;
+  color: #888;
+}
+
 .md-code-block {
   overflow-x: auto;
   border-radius: 8px;

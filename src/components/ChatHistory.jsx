@@ -32,7 +32,11 @@ export default function ChatHistory({ messages, streaming, disabled, onEditMessa
               <ActivityPanel activities={message.activities} />
             )}
             {message.role === 'assistant' ? (
-              <AssistantMessage content={message.content} images={message.images} />
+              <AssistantMessage
+                content={message.content}
+                images={message.images}
+                renderDiagrams
+              />
             ) : (
               <UserMessage
                 message={message}
@@ -53,6 +57,7 @@ export default function ChatHistory({ messages, streaming, disabled, onEditMessa
               <AssistantMessage
                 content={stripImageGenDirective(streaming.content)}
                 images={streaming.images}
+                renderDiagrams={false}
               />
             ) : (
               <div className="loading-dots">
